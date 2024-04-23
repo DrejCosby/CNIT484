@@ -18,6 +18,49 @@ Decision: Use both datasets. The daily dataset can provide a broader context, wh
     Purpose: Positional encodings are crucial for transformers because they provide the model with information about the position of data points in a sequence. This is essential for understanding the temporal order of the data.
     Application: Add positional encodings to your input sequences to provide the model with information about the temporal order of the data points.
 
+    Expanded PE info:
+
+In the context of financial data, especially when dealing with daily data points, applying positional encodings to each of the 24 hour instances within a day can indeed be a bit redundant, especially considering that trends can carry out farther than 24 hours. This redundancy might not add much value to the model's understanding of the data, especially if the model is designed to capture long-term dependencies.
+
+A more effective approach to applying positional encodings to your data would be to focus on the sequence level rather than the individual hourly data points. This means applying positional encodings to the sequences themselves, which represent days, rather than to each hour within those days. This approach allows the model to capture the temporal dynamics at a higher level, which is more aligned with the nature of financial data where long-term trends and seasonal patterns are often more relevant than the hourly fluctuations.
+Revised Approach for Applying Positional Encodings
+
+    Sequence Level Encoding: Instead of encoding each hour within a day, encode the entire sequence that represents a day. This means you would have one set of positional encodings for each day, rather than 24 sets of encodings for each day.
+
+    Combine with Feature Embeddings: If you're using feature embeddings (e.g., for categorical features like 'day of the week', 'month', etc.), you can combine these embeddings with the positional encodings for each day. This allows the model to capture both the temporal dynamics and the specific characteristics of each day.
+
+    Adjust the Model Architecture: Depending on your model architecture, you might need to adjust how you incorporate these positional encodings. For example, in a transformer model, you would add the positional encodings to the input embeddings before feeding them into the model.
+
+Example of Adjusting the Model for Sequence-Level Encoding
+
+Assuming you're using a transformer model and you've decided to apply positional encodings at the sequence level (i.e., for each day), here's how you might adjust the model:
+
+import torch
+import torch.nn as nn
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, max_len=2234):
+        super(PositionalEncoding, self).__init__()
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-torch.log(torch.tensor(10000.0)) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe[:x.size(0), :]
+        return x
+
+# Assuming x is your input tensor of shape (2234, 24, 5)
+# First, you would apply your feature embeddings to x to get x_embedded of shape (2234, 24, d_model)
+# Then, you would apply the positional encoding to x_embedded
+positional_encoding = PositionalEncoding(d_model=5) # Assuming d_model is the dimension of your feature embeddings
+x_with_positional_encoding = positional_encoding(x_embedded)
+
+This approach allows the model to capture the temporal dynamics at a higher level, which is more aligned with the nature of financial data where long-term trends and seasonal patterns are often more relevant than the hourly fluctuations. It's a more efficient use of positional encodings and better suited for tasks like predicting future 'close' values based on historical data.
+
 4. Transformer Model
 
     Model Architecture: Based on the "Attention is All You Need" paper, the model will consist of an encoder (which can be a stack of identical layers) and a decoder (if you're doing sequence-to-sequence prediction).
