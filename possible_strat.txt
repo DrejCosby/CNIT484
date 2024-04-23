@@ -81,30 +81,6 @@ This approach allows the model to capture the temporal dynamics at a higher leve
 
     Predicting Future Values: Once the model is trained, you can use it to predict future 'close' values. This involves feeding the model with the most recent sequences of data and having it output the predicted 'close' values for the next day or hour.
 
-Example Code Snippet for Positional Encoding
-
-Here's a simplified example of how you might implement positional encoding in PyTorch:
-
-import torch
-import numpy as np
-
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        x = x + self.pe[:x.size(0), :]
-        return self.dropout(x)
-
 This outline provides a structured approach to building a transformer model for your financial data. Remember, the effectiveness of the model will depend on the specific characteristics of your data and the objectives of your model. It's also important to experiment with different architectures and evaluate their performance on your specific task.
 
 
